@@ -133,6 +133,11 @@ fixed_splitter = CharacterTextSplitter(
     chunk_overlap=20,    # Characters to repeat between chunks (10% overlap)
     separator="\n"       # Prefer splitting on newlines when possible
 )
+# fixed_splitter = CharacterTextSplitter(
+#     chunk_size=500,      # Maximum characters per chunk
+#     chunk_overlap=50,    # Characters to repeat between chunks (10% overlap)
+#     separator="\n"       # Prefer splitting on newlines when possible
+# )
 fixed_chunks = fixed_splitter.split_documents(documents)
 
 print(f"✓ Created {len(fixed_chunks)} chunks")
@@ -407,7 +412,11 @@ embeddings_model = OpenAIEmbeddings(
     model=os.getenv('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
 )
 
-query = "Authentication problems after password reset"
+# query = "Authentication problems after password reset"
+query = "Database is timing out frequently"
+# query = "Email notifications not working"
+# query = "Payment processing fails"
+# query = "Mobile app crashes"
 
 print("\nBuilding Chroma vector store...")
 
@@ -437,13 +446,16 @@ print("✓ Chroma store created and persisted")
 # Basic Similarity Search
 # -----------------------------------------------------------------------------
 print(f"\nSearching in Chroma: '{query}'")
-chroma_results = chroma_store.similarity_search(query, k=3)
+# chroma_results = chroma_store.similarity_search(query, k=5)
+# chroma_results = chroma_store.similarity_search(query, k=3)
+results_with_score = chroma_store.similarity_search_with_score(query, k=3)
 
-print(f"\nTop {len(chroma_results)} results:")
-for i, doc in enumerate(chroma_results, 1):
-    print(f"\n#{i}")
+print(f"\nTop {len(results_with_score)} results:")
+for i, (doc, score) in enumerate(results_with_score, 1):
+    print(f"\n#{i} - Distance: {score:.4f}")
     print(f"Ticket: {doc.metadata['ticket_id']}")
     print(f"Category: {doc.metadata['category']}")
+    print(f"Title: {tickets[int(doc.metadata['ticket_id'].split('-')[1]) - 1]['title']}")
 
 # -----------------------------------------------------------------------------
 # MMR Search (Maximal Marginal Relevance)
@@ -479,7 +491,9 @@ for i, doc in enumerate(chroma_results, 1):
 # USE CASE: When you want varied perspectives, not just the "best" match
 # -----------------------------------------------------------------------------
 print("\n--- Using MMR for Diverse Results ---")
-mmr_results = chroma_store.max_marginal_relevance_search(query, k=3)
+# mmr_results = chroma_store.max_marginal_relevance_search(query, k=3)
+mmr_results = chroma_store.max_marginal_relevance_search(query, k=5)
+
 
 print(f"\nMMR Results (more diverse):")
 for i, doc in enumerate(mmr_results, 1):
@@ -515,10 +529,15 @@ print("="*80)
 # We want to search ONLY authentication-related tickets
 # -----------------------------------------------------------------------------
 print("\nSearching only in 'Authentication' category:")
+# filtered_results = chroma_store.similarity_search(
+#     query,
+#     k=3,
+#     filter={"category": "Authentication"}  # Only match this category
+# )
 filtered_results = chroma_store.similarity_search(
     query,
-    k=3,
-    filter={"category": "Authentication"}  # Only match this category
+    k=5,
+    filter={"category": "Database"}  # Only match this category
 )
 
 print(f"\nFiltered results ({len(filtered_results)}):")
@@ -535,9 +554,14 @@ for i, doc in enumerate(filtered_results, 1):
 # Combine semantic search with priority filter
 # -----------------------------------------------------------------------------
 print("\n\nSearching only 'High' priority tickets:")
+# high_priority_results = chroma_store.similarity_search(
+#     "Database performance issues",
+#     k=3,
+#     filter={"priority": "High"}  # Only high priority
+# )
 high_priority_results = chroma_store.similarity_search(
     "Database performance issues",
-    k=3,
+    k=5,
     filter={"priority": "High"}  # Only high priority
 )
 
