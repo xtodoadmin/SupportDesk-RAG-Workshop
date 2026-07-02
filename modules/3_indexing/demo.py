@@ -146,6 +146,10 @@ print(f"✓ Loaded {len(documents)} support tickets")
 
 # Test query - we'll use this across all index types
 query = "How do I fix authentication issues after password reset?"
+# query = "Database connection is timing out"
+# query = "Email notifications not being delivered"
+# query = "Mobile app crashes on startup"
+# query = "Payment processing fails for international cards"
 print(f"\nTest Query: '{query}'")
 
 # ============================================================================
@@ -214,7 +218,8 @@ vector_index = VectorStoreIndex.from_documents(documents)
 #   - similarity_top_k=3: Return top 3 most similar documents
 #   - The engine handles: embed query → search → synthesize response
 # -----------------------------------------------------------------------------
-vector_query_engine = vector_index.as_query_engine(similarity_top_k=3)
+# vector_query_engine = vector_index.as_query_engine(similarity_top_k=3)
+vector_query_engine = vector_index.as_query_engine(similarity_top_k=5)
 
 print("✓ Created vector index")
 print(f"\nQuery: '{query}'")
@@ -453,6 +458,7 @@ tree_index = TreeIndex.from_documents(tree_documents)
 # At each level, the LLM scores ALL children for relevance to the query,
 # then follows only the top `child_branch_factor` branches downward.
 # -----------------------------------------------------------------------------
+# tree_query_engine = tree_index.as_query_engine(child_branch_factor=3)
 tree_query_engine = tree_index.as_query_engine(child_branch_factor=2)
 
 print("✓ Created tree index with hierarchical structure")
@@ -573,10 +579,16 @@ keyword_response = keyword_query_engine.query(query)
 print("\nKeyword Index Results:")
 print(f"Answer: {keyword_response.response}\n")
 print("Source Documents:")
+print(f"Response: \n {keyword_response}")
 for i, node in enumerate(keyword_response.source_nodes[:3], 1):
     print(f"\n{i}. {node.metadata.get('ticket_id', 'Unknown')}")
     print(f"   {node.text[:150]}...")
 
+# Test keyword-specific query
+keyword_query = "TICK-001"
+print(f"\nKeyword-specific query: '{keyword_query}'")
+keyword_response = keyword_query_engine.query(keyword_query)
+print(f"Result: {keyword_response.response}")
 # ============================================================================
 # PART 5: Hybrid Retrieval
 # ============================================================================
@@ -636,6 +648,7 @@ print(f"\nQuery: '{query}'")
 # "auth issues" → finds "login problems", "SSO failures", etc.
 # -----------------------------------------------------------------------------
 vector_nodes = vector_index.as_retriever(similarity_top_k=5).retrieve(query)
+print(f"\vector_nodes: '{vector_nodes}'")
 
 # -----------------------------------------------------------------------------
 # Step 2: Retrieve from Keyword Index (Exact)
@@ -645,6 +658,7 @@ vector_nodes = vector_index.as_retriever(similarity_top_k=5).retrieve(query)
 # Great for: ticket IDs, error codes, product names
 # -----------------------------------------------------------------------------
 keyword_nodes = keyword_index.as_retriever().retrieve(query)
+print(f"\keyword_nodes: '{keyword_nodes}'")
 
 # -----------------------------------------------------------------------------
 # Step 3: Fusion - Combine and Deduplicate
